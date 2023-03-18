@@ -11,14 +11,18 @@
 
 #define INF numeric_limits<int>::max()
 #define EMPTY ' '
-#define BLACK 'X'
-#define WHITE 'O'
+#define BLACK 'B'
+#define WHITE 'W'
 
 using namespace std;
 
 struct TilePosition {
     int x = -1;
     int y = -1;
+
+    bool operator==(const TilePosition& other) const {
+        return x == other.x && y == other.y;
+    }
 
     string toString() {
         return "(" + to_string(x) + ":" + to_string(y) + ")";
@@ -49,8 +53,6 @@ struct Board {
         {EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY},
         {EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY}
     }};
-    bool cpuIsBlack = false;
-    bool isFinished = false;
     bool isBlackTurn = false;
 
     void setFlippedTiles(Move* move) {
@@ -62,27 +64,31 @@ struct Board {
                 int newY = move->placedTile.y + y;
 
                 if (newX < 0 || newX >= 8 || newY < 0 || newY >= 8) continue;
+                if (array[newX][newY] == (isBlackTurn ? BLACK : WHITE) || array[newX][newY] == EMPTY) continue;
 
-                if (array[newX][newY] == (isBlackTurn ? BLACK : WHITE)) continue;
-
+                /* DEBUG
+                Board newBoard(*this);
+                newBoard.array[move->placedTile.x][move->placedTile.y] = 'H';
+                cout << newBoard.toString() << endl; 
+                */
+                
                 list<TilePosition> tilesToFlip;
                 while (true) {
-                    newX += x;
-                    newY += y;
-
-                    if (newX < 0 || newX >= 8 || newY < 0 || newY >= 8) break;
-
                     if (array[newX][newY] == (isBlackTurn ? WHITE : BLACK)) {
                         tilesToFlip.push_back({newX, newY});
                     } else if (array[newX][newY] == (isBlackTurn ? BLACK : WHITE)) {
-                        move->flippedTiles.insert(move->flippedTiles.end(), tilesToFlip.begin(), tilesToFlip.end());
+                        move->flippedTiles.splice(move->flippedTiles.end(), tilesToFlip);
                         break;
-                    } else {
-                        break;
-                    }
+                    } else break;
+
+                    newX += x;
+                    newY += y;
+                    if (newX < 0 || newX >= 8 || newY < 0 || newY >= 8) break;
                 }
             }
         }
+
+        move->flippedTiles.unique();
     }
 
     list<Move> getPossibleMoves() {
@@ -103,6 +109,7 @@ struct Board {
                         int newY = j + y;
 
                         if (newX < 0 || newX >= 8 || newY < 0 || newY >= 8) continue;
+                        if (array[newX][newY] != EMPTY) continue;
 
                         moves.push_back({{newX, newY}, {}});
                     }
@@ -113,14 +120,20 @@ struct Board {
         // Remove duplicates
         moves.unique();
 
-        // Remove tiles that don't flip any tiles
-        for (int i = 0; i < moves.size(); i++) {
-            Move move = moves.front();
-            moves.pop_front();
+        /* DEBUG
+        Board newBoard(*this);
+        for (Move move : moves) newBoard.array[move.placedTile.x][move.placedTile.y] = 'H';
+        cout << newBoard.toString() << endl;
+        */
 
-            setFlippedTiles(&move);
-            if (move.flippedTiles.size() > 0) {
-                moves.push_back(move);
+        // Remove tiles that don't flip any tiles
+        for (auto it = moves.begin(); it != moves.end();) {
+            setFlippedTiles(&*it);
+
+            if (it->flippedTiles.size() == 0) {
+                it = moves.erase(it);
+            } else {
+                it++;
             }
         }
 
@@ -153,25 +166,27 @@ struct Board {
     }
 
     string toString() {
-        string result = " ________ \n";
+        string result;
+
         for (int i = 0; i < 8; i++) {
-            result += "|";
             for (int j = 0; j < 8; j++) {
+                result += "|";
                 result += array[i][j];
             }
             result += "|\n";
         }
-        result += "|________|";
+        
         return result;
     }
 };
 
 int _minimax(Board* board, int depth, bool isBlack, bool forBlack, int alpha = -INF, int beta = INF) {
-    if (depth == 0 || board->isFinished) return board->evaluateScore(forBlack);
-
-    int maxEval = -INF;
+    if (depth == 0) return board->evaluateScore(forBlack);
 
     list<Move> moves = board->getPossibleMoves();
+    if (moves.size() == 0) return board->evaluateScore(forBlack);
+
+    int maxEval = -INF;
     for (Move move : moves) {
         Board newBoard(*board);
         newBoard.makeMove(&move);
@@ -221,14 +236,20 @@ Move getBestMove(Board* board, int depth) {
 
 int main() {
     Board board;
+    Move move;
 
-    while (true) {
-        Move move = getBestMove(&board, 6);
+    do {
+        move = getBestMove(&board, 6);
         cout << move.toString() << endl;
 
         board.makeMove(&move);
         cout << board.toString() << endl;
-    }
+    } while (move.placedTile.x != -1);
+
+    int score = board.evaluateScore(true);
+    if (score > 0) cout << "Black wins! (" + to_string(score) + ")" << endl;
+    else if (score < 0) cout << "White wins! (" + to_string(-score) + ")" << endl;
+    else cout << "Draw!" << endl;
 
     return 0;
 }

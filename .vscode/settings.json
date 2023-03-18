@@ -6,6 +6,7 @@
     "python.languageServer": "None",
     "terminal.integrated.fontFamily": "MonoLisa",
     "files.associations": {
-        "list": "cpp"
+        "list": "cpp",
+        "*.tcc": "cpp"
     }
 }
