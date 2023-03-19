@@ -3,9 +3,7 @@
 #include <string>
 #include <list>
 #include <array>
-#include <set>
 #include <limits>
-#include <cmath>
 #include <thread>
 #include <chrono>
 
@@ -203,7 +201,7 @@ int _minimax(Board* board, int depth, bool isBlack, bool forBlack, int alpha = -
     return maxEval;
 }
 
-void _launchMinimax(Board board, Move move, int depth, int &bestEval, Move &bestMove) {
+void _launchMinimax(Board board, Move move, int depth, int &bestEval, Move &bestMove, int &progress, int total) {
     chrono::steady_clock::time_point start = chrono::steady_clock::now();
 
     Board newBoard(board);
@@ -215,18 +213,21 @@ void _launchMinimax(Board board, Move move, int depth, int &bestEval, Move &best
         bestMove = move;
     }
 
-    cout << chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start).count() << "ms - ";
+    progress++;
+    long duration = chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start).count();
+    cout << "Processed " << progress << "/" << total << " solutions (" << duration << "ms" << "). \r";
 }
 
 Move getBestMove(Board* board, int depth) {
     list<Move> possibleMoves = board->getPossibleMoves();
     list<thread> threads;
 
+    int progress = 0;
     int bestEval = -INF;
     Move bestMove;
 
     for (Move move : possibleMoves) {
-        threads.push_back(thread(_launchMinimax, *board, move, depth, ref(bestEval), ref(bestMove)));
+        threads.push_back(thread(_launchMinimax, *board, move, depth, ref(bestEval), ref(bestMove), ref(progress), possibleMoves.size()));
     }
     for (thread &thread : threads) thread.join();
 
@@ -238,13 +239,26 @@ int main() {
     Board board;
     Move move;
 
+    long total = 0;
+    long max = 0;
+    int count = 0;
     do {
+        chrono::steady_clock::time_point start = chrono::steady_clock::now();
+
         move = getBestMove(&board, 6);
         cout << move.toString() << endl;
+
+        long duration = chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start).count();
+        if (duration > max) max = duration;
+        total += duration;
+        count++;
 
         board.makeMove(&move);
         cout << board.toString() << endl;
     } while (move.placedTile.x != -1);
+
+    cout << "Average: " << to_string(total / count) << "ms" << endl;
+    cout << "Max: " << to_string(max) << "ms" << endl;
 
     int score = board.evaluateScore(true);
     if (score > 0) cout << "Black wins! (" + to_string(score) + ")" << endl;
