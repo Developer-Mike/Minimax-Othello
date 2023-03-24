@@ -68,7 +68,7 @@ struct Board {
                 int newY = move->placedTile.y + y;
 
                 if (newX < 0 || newX >= 8 || newY < 0 || newY >= 8) continue; // Out of bounds
-                if (array[newX][newY] == (isBlackTurn ? BLACK : WHITE) || array[newX][newY] == EMPTY) continue; // Not a tile to flip
+                if (array[newY][newX] == (isBlackTurn ? BLACK : WHITE) || array[newY][newX] == EMPTY) continue; // Not a tile to flip
 
                 /* DEBUG
                 Board newBoard(*this);
@@ -79,9 +79,9 @@ struct Board {
                 // While the tile is not empty and not the same color as the placed tile
                 list<TilePosition> tilesToFlip;
                 while (true) {
-                    if (array[newX][newY] == (isBlackTurn ? WHITE : BLACK)) {
+                    if (array[newY][newX] == (isBlackTurn ? WHITE : BLACK)) {
                         tilesToFlip.push_back({newX, newY});
-                    } else if (array[newX][newY] == (isBlackTurn ? BLACK : WHITE)) {
+                    } else if (array[newY][newX] == (isBlackTurn ? BLACK : WHITE)) {
                         // Tiles are sourrounded by the same color -> Valid move
                         move->flippedTiles.splice(move->flippedTiles.end(), tilesToFlip);
                         break;
@@ -117,7 +117,7 @@ struct Board {
                         int newY = j + y;
 
                         if (newX < 0 || newX >= 8 || newY < 0 || newY >= 8) continue;
-                        if (array[newX][newY] != EMPTY) continue;
+                        if (array[newY][newX] != EMPTY) continue;
 
                         // Add to list
                         moves.push_back({{newX, newY}, {}});
@@ -150,11 +150,11 @@ struct Board {
     // Make a move
     void makeMove(Move* move) {
         // Place new tile
-        array[move->placedTile.x][move->placedTile.y] = isBlackTurn ? BLACK : WHITE;
+        array[move->placedTile.y][move->placedTile.x] = isBlackTurn ? BLACK : WHITE;
 
         // Flip tiles
         for (TilePosition tilePosition : move->flippedTiles) {
-            array[tilePosition.x][tilePosition.y] = isBlackTurn ? BLACK : WHITE;
+            array[tilePosition.y][tilePosition.x] = isBlackTurn ? BLACK : WHITE;
         }
 
         // Switch turn
