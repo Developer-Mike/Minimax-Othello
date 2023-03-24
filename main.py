@@ -7,9 +7,14 @@ from pybricks.tools import wait, StopWatch, DataLog
 from pybricks.robotics import DriveBase
 from pybricks.media.ev3dev import SoundFile, ImageFile, Font
 
+IP_ADDRESS = "192.168.178.112"
+from shared import Functions
+from client import Client
+client = Client(IP_ADDRESS, 3000)
+
 ev3 = EV3Brick()
 ev3.screen.set_font(Font())
-color_sensor = ColorSensor(Port.S1)
+color_sensor = None #ColorSensor(Port.S1)
 
 def draw_board(board: str):
     ev3.screen.clear()
@@ -44,5 +49,5 @@ def scan(x: int, y: int) -> Color:
     
     return color_sensor.color()
 
-draw_board("| | | | | | | | |\n| | | | | | | | |\n| | | | | | | | |\n| | | |B|W| | | |\n| | | |W|W|W| | |\n| | | | | | | | |\n| | | | | | | | |\n| | | | | | | | |\n")
+draw_board(client.execute(Functions.AI_MOVE)["board"])
 wait(1000000)
