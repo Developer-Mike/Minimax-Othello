@@ -35,15 +35,22 @@ def make_move():
     move = core.Move(core.TilePosition(x, y), [])
     board.setFlippedTiles(move)
 
-    if len(move.flippedTiles) == 0:
+    if board.array[y][x] != " ":
+        return jsonify({
+            "success": False,
+            "message": "Invalid move. Field is not empty."
+        })
+    elif len(move.flippedTiles) == 0:
         return jsonify({
             "success": False,
             "message": "Invalid move. No tiles get flipped."
-            })
+        })
 
     board.makeMove(move)
-    print(board.toString())
-    return jsonify({"board": board.toString()})
+    return jsonify({
+        "success": True,
+        "board": str(board.toString())
+    })
 
 @app.route('/get-moves', methods=['GET'])
 def get_moves():
@@ -54,6 +61,9 @@ def get_moves():
 @app.route('/ai-move', methods=['GET'])
 def ai_move():
     move = core.getBestMove(board, 6)
-    return jsonify(move_to_dict(move))
+    return jsonify({
+        "success": True,
+        "move": move_to_dict(move)
+    })
 
 app.run()
