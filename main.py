@@ -41,7 +41,7 @@ def draw_state_text(text: str):
 
     FRAGMENT_LENGTH = 7
     for i, text_fragment in enumerate([text[i:i + FRAGMENT_LENGTH] for i in range(0, len(text), FRAGMENT_LENGTH)]): 
-        ev3.screen.draw_text(132, i * 8, text_fragment.strip())
+        ev3.screen.draw_text(132, i * 10, text_fragment.strip())
 
 def move_to_field(x: int, y: int, move_home: bool = False):
     if move_home: move_to_home()
@@ -102,7 +102,7 @@ while True:
                 wait(100)
 
             # TODO: Scan field
-            client.execute(Functions.AI_MOVE)
+            response = client.execute(Functions.AI_MOVE)
             draw_board(response["board"])
         
         is_black_turn = not is_black_turn
