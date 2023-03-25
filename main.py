@@ -16,6 +16,11 @@ ev3 = EV3Brick()
 ev3.screen.set_font(Font())
 color_sensor = None #ColorSensor(Port.S1)
 
+AI_IS_WHITE = True
+
+def no_move(move: dict) -> bool:
+    return move["x"] == -1 and move["y"] == -1
+
 def draw_board(board: str):
     ev3.screen.clear()
     splitted_board = board.split("\n")
@@ -30,6 +35,13 @@ def draw_board(board: str):
 
             ev3.screen.draw_text(draw_x, draw_y, splitted_board[y][x])
         ev3.screen.draw_text(3, y * 16 + 3, "_" * 18)
+
+def draw_state_text(text: str):
+    ev3.screen.draw_box(130, 0, 177, 128, color=Color.WHITE, fill=True)
+
+    FRAGMENT_LENGTH = 7
+    for i, text_fragment in enumerate([text[i:i + FRAGMENT_LENGTH] for i in range(0, len(text), FRAGMENT_LENGTH)]): 
+        ev3.screen.draw_text(132, i * 8, text_fragment.strip())
 
 def move_to_field(x: int, y: int, move_home: bool = False):
     if move_home: move_to_home()
@@ -49,5 +61,67 @@ def scan(x: int, y: int) -> Color:
     
     return color_sensor.color()
 
-draw_board(client.execute(Functions.AI_MOVE)["board"])
-wait(1000000)
+# Restore board
+board = client.execute(Functions.GET_BOARD)
+draw_board(board["board"])
+is_black_turn = board["isBlackTurn"]
+
+while True:
+    invalid_move_count = 0
+    while invalid_move_count < 2:
+        if not is_black_turn and AI_IS_WHITE:
+            draw_state_text("AI is thinking...")
+            # AI move
+            response = client.execute(Functions.AI_MOVE)
+
+            # Check if AI could not find a move
+            if no_move(response["move"]):
+                print("AI could not find a move. Skipping turn.")
+                invalid_move_count += 1
+                is_black_turn = not is_black_turn
+                continue
+            else:
+                invalid_move_count = 0
+
+            # Update board
+            draw_board(response["board"])
+        else:
+            # Get possible moves
+            response = client.execute(Functions.GET_MOVES)
+            if len(response["moves"]) == 0:
+                print("No moves available. Skipping turn.")
+                invalid_move_count += 1
+                is_black_turn = not is_black_turn
+                continue
+            else:
+                invalid_move_count = 0
+
+            # Wait for button press
+            draw_state_text("Waiting for player...")
+            while Button.CENTER not in ev3.buttons.pressed():
+                wait(100)
+
+            # TODO: Scan field
+            client.execute(Functions.AI_MOVE)
+            draw_board(response["board"])
+        
+        is_black_turn = not is_black_turn
+
+    # Game over
+    response = client.execute(Functions.GET_BOARD)
+    score_black = response["scoreBlack"]
+
+    text = ""
+    if score_black == 0: text = "Draw!"
+    elif score_black > 0: text = "Black won with {0} tiles more!".format(score_black)
+    else: text = "White won with {0} tiles more!".format(-score_black)
+    draw_state_text(text)
+
+    # Wait for button press
+    while Button.CENTER not in ev3.buttons.pressed():
+        wait(100)
+
+    # Restart game
+    response = client.execute(Functions.START)
+    draw_board(response["board"])
+    is_black_turn = response["isBlackTurn"]

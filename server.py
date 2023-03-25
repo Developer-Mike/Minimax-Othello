@@ -21,7 +21,19 @@ def start(json: dict):
     global board
 
     board = core.Board()
-    return {"success": True}
+    return {
+        "success": True,
+        "board": str(board.toString()),
+        "isBlackTurn": board.isBlackTurn
+    }
+
+def get_board(json: dict):
+    return {
+        "success": True,
+        "board": str(board.toString()),
+        "isBlackTurn": board.isBlackTurn,
+        "scoreBlack": board.evaluateScore(True)
+    }
 
 def register_move(json: dict):
     x = int(json["x"])
@@ -49,6 +61,7 @@ def register_move(json: dict):
 
 def get_moves(json: dict):
     return {
+        "success": True,
         "moves": [move_to_dict(move) for move in board.getPossibleMoves()]
     }
 
@@ -65,6 +78,7 @@ def ai_move(json: dict):
 from shared import Functions
 FUNCTIONS_MAP = {
     Functions.START: start,
+    Functions.GET_BOARD: get_board,
     Functions.REGISTER_MOVE: register_move,
     Functions.GET_MOVES: get_moves,
     Functions.AI_MOVE: ai_move

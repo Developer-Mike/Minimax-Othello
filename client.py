@@ -16,8 +16,10 @@ class Client:
         print("Sending:", payload)
         self.s.send(bytes(json.dumps(payload), "utf-8"))
 
-        response = json.loads(self.s.recv(1024).decode("utf-8"))
+        response = json.loads(self.s.recv(8192).decode("utf-8"))
         print("Response:", response)
+        if not response["success"]:
+            raise Exception("Server returned error: " + response["error"])
 
         return response
 
