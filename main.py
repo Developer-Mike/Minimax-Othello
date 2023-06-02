@@ -15,8 +15,9 @@ client = Client(IP_ADDRESS, 3000)'''
 
 MOVE_SPEED = (500, 500)
 LIFT_SPEED = 200
-FIELD_SIZE = (110, 200)
+FIELD_SIZE = (110, 210)
 MAX_DURATION = 5000 # Avoid stalls with max time for move
+MAX_STALLS = 5 # Avoid stalls with max stalls for move
 current_location = [0, 0]
 
 ev3 = EV3Brick()
@@ -25,7 +26,7 @@ ev3.screen.set_font(Font())
 motor_lift = Motor(Port.A)
 motor_x = Motor(Port.B)
 motor_y = Motor(Port.C)
-color_sensor = ColorSensor(Port.S1)
+# color_sensor = ColorSensor(Port.S1)
 
 def move_home():
     global current_location
@@ -44,9 +45,14 @@ def move_to(target_x: int, target_y: int, align_sensor: bool = False, home_first
     motor_y.run_angle(MOVE_SPEED[1], (FIELD_SIZE[1] * (target_y - current_location[1])), wait=False)
 
     passed_ms = 0
-    while (motor_x.speed() != 0 or motor_y.speed() != 0) and passed_ms < MAX_DURATION:
-        wait(100)
-        passed_ms += 100
+    not_moved_since = 0
+    while not_moved_since < MAX_STALLS and passed_ms < MAX_DURATION:
+        if motor_x.speed() == 0 and motor_y.speed() == 0:
+            not_moved_since += 1
+        else: not_moved_since = 0
+
+        wait(50)
+        passed_ms += 50
 
     current_location = [target_x, target_y]
     print("Movement took: " + str(passed_ms) + "ms")
@@ -61,7 +67,11 @@ def take_new_piece():
     move_to(origin_pos[0], origin_pos[1])
 
 def lift_piece(new_piece_lift: bool = False):
-    if not new_piece_lift: motor_lift.run_target(LIFT_SPEED, -450)
+    if not new_piece_lift: 
+        motor_lift.run_target(LIFT_SPEED, -450)
+    else:
+        motor_lift.run_target(LIFT_SPEED, -300)
+        
     motor_lift.run_target(LIFT_SPEED, -175)
 
 def drop_piece():
@@ -70,10 +80,12 @@ def drop_piece():
 
 # Init Position
 drop_piece()
-home()
+move_home()
 
 # Main Program
-lift_piece()
+move_to(4, 4)
+take_new_piece()
+drop_piece()
 
 # move_to(4, 6, align_sensor = False)
 # move_to(7, 7)
