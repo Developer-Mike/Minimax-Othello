@@ -6,16 +6,84 @@ from pybricks.parameters import Port, Stop, Direction, Button, Color
 from pybricks.tools import wait, StopWatch, DataLog
 from pybricks.robotics import DriveBase
 from pybricks.media.ev3dev import SoundFile, ImageFile, Font
+from time import time
 
-IP_ADDRESS = "192.168.178.112"
+'''IP_ADDRESS = "192.168.178.112" # Change this to the IP address that gets printed in the terminal when you run server.py
 from shared import Functions
 from client import Client
-client = Client(IP_ADDRESS, 3000)
+client = Client(IP_ADDRESS, 3000)'''
+
+MOVE_SPEED = (500, 500)
+LIFT_SPEED = 200
+FIELD_SIZE = (110, 200)
+MAX_DURATION = 5000 # Avoid stalls with max time for move
+current_location = [0, 0]
 
 ev3 = EV3Brick()
 ev3.screen.set_font(Font())
-color_sensor = None #ColorSensor(Port.S1)
 
+motor_lift = Motor(Port.A)
+motor_x = Motor(Port.B)
+motor_y = Motor(Port.C)
+color_sensor = ColorSensor(Port.S1)
+
+def move_home():
+    global current_location
+
+    motor_x.run_until_stalled(-100000, duty_limit=50)
+    motor_y.run_until_stalled(-100000, duty_limit=30)
+
+    current_location = [0, 0]
+
+def move_to(target_x: int, target_y: int, align_sensor: bool = False, home_first: bool = False):
+    global current_location
+    if home_first: move_home()
+    if align_sensor: target_y += 1
+
+    motor_x.run_angle(MOVE_SPEED[0], (FIELD_SIZE[0] * (target_x - current_location[0])), wait=False)
+    motor_y.run_angle(MOVE_SPEED[1], (FIELD_SIZE[1] * (target_y - current_location[1])), wait=False)
+
+    passed_ms = 0
+    while (motor_x.speed() != 0 or motor_y.speed() != 0) and passed_ms < MAX_DURATION:
+        wait(100)
+        passed_ms += 100
+
+    current_location = [target_x, target_y]
+    print("Movement took: " + str(passed_ms) + "ms")
+
+def take_new_piece():
+    global current_location
+    origin_pos = current_location
+
+    drop_piece()
+    move_to(0, 8)
+    lift_piece(new_piece_lift = True)
+    move_to(origin_pos[0], origin_pos[1])
+
+def lift_piece(new_piece_lift: bool = False):
+    if not new_piece_lift: motor_lift.run_target(LIFT_SPEED, -450)
+    motor_lift.run_target(LIFT_SPEED, -175)
+
+def drop_piece():
+    motor_lift.run_until_stalled(LIFT_SPEED, duty_limit=0.1)
+    motor_lift.reset_angle(0)
+
+# Init Position
+drop_piece()
+home()
+
+# Main Program
+lift_piece()
+
+# move_to(4, 6, align_sensor = False)
+# move_to(7, 7)
+
+
+
+
+
+
+'''
 AI_IS_WHITE = True
 
 def no_move(move: dict) -> bool:
@@ -42,24 +110,6 @@ def draw_state_text(text: str):
     FRAGMENT_LENGTH = 7
     for i, text_fragment in enumerate([text[i:i + FRAGMENT_LENGTH] for i in range(0, len(text), FRAGMENT_LENGTH)]): 
         ev3.screen.draw_text(132, i * 10, text_fragment.strip())
-
-def move_to_field(x: int, y: int, move_home: bool = False):
-    if move_home: move_to_home()
-    pass
-
-def move_to_home():
-    pass
-
-def flip(x: int, y: int):
-    if x is not None and y is not None:
-        move_to_field(x, y, move_home=True)
-    pass
-
-def scan(x: int, y: int) -> Color:
-    if x is not None and y is not None:
-        move_to_field(x, y, move_home=True)
-    
-    return color_sensor.color()
 
 # Restore board
 board = client.execute(Functions.GET_BOARD)
@@ -125,3 +175,4 @@ while True:
     response = client.execute(Functions.START)
     draw_board(response["board"])
     is_black_turn = response["isBlackTurn"]
+'''
