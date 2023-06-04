@@ -1,3 +1,4 @@
+# A shared location for serverside functions
 class Functions:
     START = "start"
     GET_BOARD = "get-board"
