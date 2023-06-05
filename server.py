@@ -37,7 +37,7 @@ def get_board(json: dict):
         "success": True,
         "board": str(board.toString()),
         "isBlackTurn": board.isBlackTurn,
-        "scoreBlack": board.evaluateScore(True)
+        "scoreBlack": board.evaluateScore()
     }
 
 # Register a move on the board (made by the player)
@@ -131,11 +131,11 @@ if __name__ == "__main__":
             print("Received:", data)
 
             # Find the function to execute
-            function = FUNCTIONS_MAP.get(data["function"])
-            if function is not None:
+            requested_function = FUNCTIONS_MAP.get(data["function"])
+            if requested_function is not None:
                 # Execute the function and send the response back to the EV3
-                response = json.dumps(function(data["parameters"]))
-                client.send(bytes(response, "utf-8"))
+                response = requested_function(data["parameters"])
+                client.send(bytes(json.dumps(response), "utf-8"))
             else:
                 print("Unknown function:", data)
         except:

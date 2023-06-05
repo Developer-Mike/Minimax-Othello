@@ -9,7 +9,7 @@ from pybricks.media.ev3dev import SoundFile, ImageFile, Font
 from time import time
 
 # Init connection to server
-IP_ADDRESS = "192.168.178.112" # Change this to the IP address that gets printed in the terminal when you run server.py
+IP_ADDRESS = "192.168.245.72" # Change this to the IP address that gets printed in the terminal when you run server.py
 from shared import Functions
 from client import Client
 client = Client(IP_ADDRESS, 3000)
@@ -19,9 +19,10 @@ AI_IS_WHITE = True
 
 MOVE_SPEED = (500, 500)
 LIFT_SPEED = 200
-FIELD_SIZE = (110, 210)
+FIELD_SIZE = (120, 200)
 MAX_DURATION = 5000 # Avoid stalls with max time for move
 MAX_STALLS = 5 # Avoid stalls with max stalls for move
+RETURN_TO_HOME_INTERVAL = 2 # For accuracy
 current_location = [0, 0]
 
 ev3 = EV3Brick()
@@ -99,20 +100,23 @@ def drop_piece():
     motor_lift.reset_angle(0)
 
 def has_piece() -> bool:
-    return True # TODO: Implement
+    return color_sensor.color() == Color.BROWN
 #endregion
 
 #region Logic
 def find_made_move(possible_moves: list) -> dict:
+    home_counter = 0
     # For each possible move
     for possible_move in possible_moves:
         # Move to field
-        move_to(possible_move["x"], possible_move["y"], align_sensor=True)
+        move_to(possible_move["x"], possible_move["y"], home_first=(home_counter % RETURN_TO_HOME_INTERVAL == 0), align_sensor=True)
         # Check if field contains a piece
         if has_piece():
             return possible_move
-    else:
-        return None
+        
+        home_counter += 1
+        
+    return None
 #endregion
 
 #region Debug
@@ -173,6 +177,34 @@ while True:
 
             # Update debug board
             draw_board(response["board"])
+
+            # Place new tile
+            move_to(response["move"]["x"], response["move"]["y"])
+            take_new_piece()
+            drop_piece()
+
+            # Flip tiles
+            home_counter = 0
+            for piece_to_flip in response["move"]["flipped"]:
+                # Move to field
+                move_to(piece_to_flip["x"], piece_to_flip["y"], home_first=(home_counter % RETURN_TO_HOME_INTERVAL == 0))
+                lift_piece()
+                
+                # Remove old piece
+                move_to(3, 9)
+                drop_piece()
+
+                # Move out a bit (Avoid hitting dispenser)
+                move_to(3, 6)
+
+                # Place new piece
+                take_new_piece()
+                move_to(piece_to_flip["x"], piece_to_flip["y"])
+                drop_piece()
+
+                home_counter += 1
+
+            move_home()
         else:
             # Get possible moves and skip player turn if no moves are available
             response = client.execute(Functions.GET_MOVES)
@@ -191,8 +223,37 @@ while True:
                 wait(100)
 
             made_move = find_made_move(possible_moves)
+            ev3.speaker.beep()
             if made_move is None:
-                print("ERROR") # TODO: Handle error
+                ev3.speaker.beep()
+
+                # List possible moves for manual selection
+                for i, possible_move in enumerate(possible_moves):
+                    print(str(i) + ": " + str(possible_move["x"]) + ", " + str(possible_move["y"]))
+
+                selected_move = 0
+                while Button.CENTER not in ev3.buttons.pressed():
+                    if Button.UP in ev3.buttons.pressed():
+                        selected_move += 1
+                        print(selected_move)
+                        # Wait unitl not pressed
+                        while Button.UP in ev3.buttons.pressed():
+                            wait(100)
+
+                    if Button.DOWN in ev3.buttons.pressed():
+                        selected_move -= 1
+                        print(selected_move)
+                        # Wait unitl not pressed
+                        while Button.DOWN in ev3.buttons.pressed():
+                            wait(100)
+
+                    if selected_move < 0: selected_move = len(possible_moves) - 1
+                    elif selected_move >= len(possible_moves): selected_move = 0
+
+                    wait(100)
+
+                ev3.speaker.beep()
+                made_move = possible_moves[selected_move]
 
             # Register move on server
             response = client.execute(Functions.REGISTER_MOVE, made_move)

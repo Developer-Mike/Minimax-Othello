@@ -99,29 +99,35 @@ struct Board {
         move->flippedTiles.unique();
     }
 
+    bool hasAdjacent(int x, int y, char tile) {
+        // TODO: fix
+        // Get adjacent tiles
+        for (int i = -1; i <= 1; i++) {
+            for (int j = -1; j <= 1; j++) {
+
+                int newX = x + i;
+                int newY = y + j;
+
+                if (newX < 0 || newX >= 8 || newY < 0 || newY >= 8) continue;
+                if (array[newY][newX] == tile) return true;
+            }
+        }
+
+        return false;
+    }
+
     list<Move> getPossibleMoves() {
         list<Move> moves;
 
         // For each field
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                char tile = array[i][j];
-                if (tile != (isBlackTurn ? WHITE : BLACK)) continue; // Not a valid tile
+        for (int x = 0; x < 8; x++) {
+            for (int y = 0; y < 8; y++) {
+                if (array[x][y] != EMPTY) continue; // Not empty
+                if (!hasAdjacent(x, y, isBlackTurn ? WHITE : BLACK)) continue; // No adjacent opponent tiles
 
-                // Get adjacent tiles
-                for (int x = -1; x <= 1; x++) {
-                    for (int y = -1; y <= 1; y++) {
-                        int newX = i + x;
-                        int newY = j + y;
-
-                        if (newX < 0 || newX >= 8 || newY < 0 || newY >= 8) continue;
-                        if (array[newY][newX] != EMPTY) continue;
-
-                        // Add to list
-                        moves.push_back({{newX, newY}, {}});
-                        cout << "Move (" + to_string(newX) + ", " + to_string(newY) + ") originated from " + to_string(i) + ", " + to_string(j) << endl;
-                    }
-                }
+                // DEBUG
+                // cout << "Possible move: " << x << ":" << y << endl;
+                moves.push_back({{x, y}, {}});
             }
         }
         
@@ -131,13 +137,14 @@ struct Board {
         });
         moves.unique();
 
-        /* DEBUG */
+        /* DEBUG
         Board newBoard(*this);
         for (Move move : moves) {
             if (newBoard.array[move.placedTile.x][move.placedTile.y] == '-') cout << "WARNING: Duplicate found!";
             newBoard.array[move.placedTile.x][move.placedTile.y] = '-';
         }
         cout << newBoard.toString() << endl;
+        */
 
         // Remove tiles that don't flip any tiles
         for (auto it = moves.begin(); it != moves.end();) {

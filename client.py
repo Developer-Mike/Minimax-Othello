@@ -8,7 +8,7 @@ class Client:
 
         # Connect to server
         self.s = socket.socket()
-        self.s.settimeout(500)
+        self.s.settimeout(5000)
         self.s.connect(socket.getaddrinfo(ip_address, port)[0][-1])
 
     # Send a function call to the server
