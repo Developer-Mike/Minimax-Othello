@@ -119,20 +119,25 @@ struct Board {
 
                         // Add to list
                         moves.push_back({{newX, newY}, {}});
+                        cout << "Move (" + to_string(newX) + ", " + to_string(newY) + ") originated from " + to_string(i) + ", " + to_string(j) << endl;
                     }
                 }
             }
         }
         
         // Remove duplicates
-        //TODO: moves.sort();
+        moves.sort([](Move move1, Move move2){ 
+            return move1.placedTile.x * 10 + move1.placedTile.y < move2.placedTile.x * 10 + move2.placedTile.y;
+        });
         moves.unique();
 
-        /* DEBUG 
+        /* DEBUG */
         Board newBoard(*this);
-        for (Move move : moves) newBoard.array[move.placedTile.x][move.placedTile.y] = 'H';
+        for (Move move : moves) {
+            if (newBoard.array[move.placedTile.x][move.placedTile.y] == '-') cout << "WARNING: Duplicate found!";
+            newBoard.array[move.placedTile.x][move.placedTile.y] = '-';
+        }
         cout << newBoard.toString() << endl;
-        */
 
         // Remove tiles that don't flip any tiles
         for (auto it = moves.begin(); it != moves.end();) {
@@ -166,6 +171,8 @@ struct Board {
     // White is maximizing player
     int evaluateScore() {
         int score = 0;
+        bool onlyBlack = true;
+        bool onlyWhite = true;
 
         // For each field
         for (int i = 0; i < 8; i++) {
@@ -173,11 +180,17 @@ struct Board {
                 // If the tile is the same color as the player, add to score (positive), else subtract (negative)
                 if (array[i][j] == BLACK) {
                     score--;
+                    onlyWhite = false;
                 } else if (array[i][j] == WHITE) {
                     score++;
+                    onlyBlack = false;
                 }
             }
         }
+
+        // Amplify win score
+        if (onlyBlack) score = -INF;
+        else if (onlyWhite) score = INF;
 
         return score;
     }
