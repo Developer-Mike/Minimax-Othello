@@ -9,6 +9,7 @@
         "list": "cpp",
         "*.tcc": "cpp",
         "type_traits": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "iostream": "cpp"
     }
 }
