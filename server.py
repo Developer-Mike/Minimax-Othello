@@ -5,9 +5,10 @@ cppyy.cppdef(open("core.cpp").read())
 import cppyy.gbl as core
 print("Compiled.")
 
-board = core.Board()
-
 import json
+
+MINIMAX_DEPTH = 7
+board = core.Board()
 
 # Utility function to convert a move to a dict
 def move_to_dict(move: core.Move) -> dict:
@@ -75,7 +76,7 @@ def get_moves(json: dict):
 
 # Let the AI make a move
 def ai_move(json: dict):
-    move = core.getBestMove(board, 6)
+    move = core.getBestMove(board, MINIMAX_DEPTH)
     board.makeMove(move)
     
     return {
@@ -116,26 +117,27 @@ def listen():
     print("Connected to", address)
 
 # Main loop
-while True:
-    # If no client is connected, listen for a connection
-    if client is None:
-        listen()
+if __name__ == "__main__":
+    while True:
+        # If no client is connected, listen for a connection
+        if client is None:
+            listen()
 
-    try:
-        # Receive data and parse it as JSON to a dict
-        data = client.recv(1024).decode("utf-8")
-        data = json.loads(data)
+        try:
+            # Receive data and parse it as JSON to a dict
+            data = client.recv(1024).decode("utf-8")
+            data = json.loads(data)
 
-        print("Received:", data)
+            print("Received:", data)
 
-        # Find the function to execute
-        function = FUNCTIONS_MAP.get(data["function"])
-        if function is not None:
-            # Execute the function and send the response back to the EV3
-            response = json.dumps(function(data["parameters"]))
-            client.send(bytes(response, "utf-8"))
-        else:
-            print("Unknown function:", data)
-    except:
-        client = None
-        print("Connection lost.")
+            # Find the function to execute
+            function = FUNCTIONS_MAP.get(data["function"])
+            if function is not None:
+                # Execute the function and send the response back to the EV3
+                response = json.dumps(function(data["parameters"]))
+                client.send(bytes(response, "utf-8"))
+            else:
+                print("Unknown function:", data)
+        except:
+            client = None
+            print("Connection lost.")
