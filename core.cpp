@@ -122,7 +122,7 @@ struct Board {
         // For each field
         for (int x = 0; x < 8; x++) {
             for (int y = 0; y < 8; y++) {
-                if (array[x][y] != EMPTY) continue; // Not empty
+                if (array[y][x] != EMPTY) continue; // Not empty
                 if (!hasAdjacent(x, y, isBlackTurn ? WHITE : BLACK)) continue; // No adjacent opponent tiles
 
                 // DEBUG
@@ -140,8 +140,8 @@ struct Board {
         /* DEBUG
         Board newBoard(*this);
         for (Move move : moves) {
-            if (newBoard.array[move.placedTile.x][move.placedTile.y] == '-') cout << "WARNING: Duplicate found!";
-            newBoard.array[move.placedTile.x][move.placedTile.y] = '-';
+            if (newBoard.array[move.placedTile.y][move.placedTile.x] == '-') cout << "WARNING: Duplicate found!";
+            newBoard.array[move.placedTile.y][move.placedTile.x] = '-';
         }
         cout << newBoard.toString() << endl;
         */
